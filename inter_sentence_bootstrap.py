@@ -214,3 +214,62 @@ def filter_seed_pattern(seed_scr,filter_val=.60):
     for i in seed_scr:
         fil_seed_scr[i]=[j  for j in seed_scr[i] if j[2]<filter_val]
     return fil_seed_scr
+#input sent_list->list of strings or sentence of len==2
+#input ref_pat->list
+#input window_len->int
+#input stop_words->boolean
+#input tagid->sring
+#output list
+def inter_sent_pattern(sent_list,ref_pat,window_len=6,stop_words=True,tagid="dep"):
+    if ref_pat==[] or sent_list==[]:
+        raise ValueError("Please enter a valid pattern")
+    if len(sent_list)!=len(ref_pat):
+        raise ValueError("Length of the list sentence and length of the reference pattern must be same")
+    return_list=[]
+    for i,j in enumerate(sent_list):
+        tptfrm=triples(j,stop_words)
+        word=tptfrm[0]
+        dep=tptfrm[1]
+        tag=tptfrm[2]
+        maxt=0.0
+        pat=[]
+        if tagid=="dep":
+            res=[dep[k:k+window_len] for k in range(len(dep)-window_len+1)]
+            for m in res:
+                sc=jaro(m,ref_pat[i])
+                if sc>=maxt:
+                    maxt=sc
+                    pat=m
+        else:
+            res=[tag[k:k+window_len] for k in range(len(tag)-window_len+1)]
+            for m in res:
+                sc=jaro(m,ref_pat[i])
+                if sc>=maxt:
+                    maxt=sc
+                    pat=m
+        return_list.append([pat,maxt])
+    return return_list
+#input seed_dict->dict with seed patterns
+#output result_dict->dict element counted seperately for sent1 and sent2 group
+def count_elements(seed_dict):
+    from collections import Counter
+    result_dict=dict()
+    for kt in seed_dict:
+        k1=[i[0] for i in seed_dict[kt]]
+        k11=[]
+        for i in k1:
+            if i not in k11:
+                k11.append(i)
+        ka=[j for i in k11 for j in i]
+        c1=Counter(ka)
+        result_dict[kt]={}
+        result_dict[kt]['sent1']=dict(c1)
+        k2=[i[1] for i in seed_dict[kt]]
+        k22=[]
+        for i in k2:
+            if i not in k22:
+                k22.append(i)
+        kb=[j for i in k22 for j in i]
+        c2=Counter(kb)
+        result_dict[kt]['sent2']=dict(c2)
+    return result_dict

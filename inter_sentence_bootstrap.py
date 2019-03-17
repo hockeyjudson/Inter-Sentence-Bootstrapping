@@ -117,7 +117,7 @@ def jaro(s, t):
 #input ref_pat->list
 #input eval_pat->list
 #output result->list
-def inter_jaro(ref_pat,eval_pat):
+def tag_inter_jaro(ref_pat,eval_pat):
     result=[{"sent1":[]},{"sent2":[]}]
     if {} in ref_pat:
         raise ValueError("Please check the referrence pattern:"+str(ref_pat))
@@ -142,8 +142,75 @@ def inter_jaro(ref_pat,eval_pat):
 #input window_len->int
 #input stop_words->boolean
 #output list
-def inter_pattern_score(pair_sent,ref_pat,tags=["nsubj","dobj"],window_len=6,stop_words=True):
+def tag_inter_pattern_score(pair_sent,ref_pat,tags=["nsubj","dobj"],window_len=6,stop_words=True):
     sent_list=[]
     for i in pair_sent:
         sent_list.append(flex_window_patEx(i,tags,window_len,stop_words))
     return inter_jaro(ref_pat,sent_list)
+#input result_dict->dict dictionary from pickle
+#output tot_pat->dict
+def inter_pattern_conv(result_dict):
+    tot_pat={}
+    for i in result_dict:
+        for j in result_dict[i]:
+            if i not in tot_pat:
+                tot_pat[i]=inter_seed_pattern(j)
+            else:
+                tot_pat[i].extend(inter_seed_pattern(j))
+    return tot_pat
+#input sent_list->list of strings
+#input windw_len->int
+#input stop_words->Boolean
+#input tagid->string
+#output final_patterns->list list of patterns for each string
+def inter_seed_pattern(sent_list,window_len=6,stop_words=True,tagid="dep"):
+    ret_list=[]
+    sent1_pat=[]
+    sent2_pat=[]
+    final_patterns=[]
+    for i,j in enumerate(sent_list):
+        tptfrm=ins.triples(j,stop_words)
+        word=tptfrm[0]
+        dep=tptfrm[1]
+        tag=tptfrm[2]
+        maxt=0.0
+        pat=[]
+        if tagid=="dep":
+            res=[dep[k:k+window_len] for k in range(len(dep)-window_len+1)]
+        else:
+            res=[tag[k:k+window_len] for k in range(len(tag)-window_len+1)]
+        if i==0:
+            sent1_pat=res
+        elif i==1:
+            sent2_pat=res
+        else:
+            raise ValueError("For this length of the input sentence list must be equal to 2")
+    for i in sent1_pat:
+        for j in sent2_pat:
+            final_patterns.append([i,j])
+    return final_patterns
+#input ip_list->2d neseted list
+def frequent_patterns(ip_list):
+    import numpy as np
+    ls={}
+    for i in ip_list:
+        for j in i:
+            j=",".join(j)
+            if j not in ls:
+                ls[j]=[j.split(","),1]
+            else:
+                ls[j][1]=ls[j][1]+1
+    f=[j[1] for i,j in ls.items()]
+    f_i=np.argsort(f)
+    f_i=f_i[::-1]
+    f_l=list(ls)
+    freq=[ls[f_l[i]] for i in f_i]
+    return freq
+#input seed_pat->dict
+#input filter_val->float shoulld always between(0.0 to 1.0)
+#output fil_seed_scr->dict filtered dictionary
+def filter_seed_pattern(seed_scr,filter_val=.60):
+    fil_seed_scr={}
+    for i in seed_scr:
+        fil_seed_scr[i]=[j  for j in seed_scr[i] if j[2]<filter_val]
+    return fil_seed_scr

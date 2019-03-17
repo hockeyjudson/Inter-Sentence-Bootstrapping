@@ -273,3 +273,21 @@ def count_elements(seed_dict):
         c2=Counter(kb)
         result_dict[kt]['sent2']=dict(c2)
     return result_dict
+#input seed_dict->dict dict from seed dict
+#output split_seed->dict splited dict
+def split_seed_dict(seed_dict):
+    split_seed={}
+    for i in seed_dict:
+        sent1=[j[0] for j in seed_dict[i]]
+        s1=[]
+        for k in sent1:
+            if k not in s1:
+                s1.append(k)
+        sent2=[j[1] for j in seed_dict[i]]
+        s2=[]
+        for k in sent2:
+            if k not in s2:
+                s2.append(k)
+        split_seed[i]={'sent1':s1}
+        split_seed[i]['sent2']=s2
+    return split_seed

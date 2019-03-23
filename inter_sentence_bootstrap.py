@@ -68,6 +68,27 @@ def triples(sent,s_words=False):
             dep.append(i.dep_)
             tag.append(i.tag_)
     return [word,dep,tag]
+#input sent_obj->spacy obj as spacy obj
+#input s_words as boolean
+#output list(word,dep,pos tag)
+def opt_triples(sent_obj,s_words=False):
+    from nltk.corpus import stopwords
+    sw=stopwords.words('english')
+    word=[]
+    dep=[]
+    tag=[]
+    if s_words:
+        for i in sent_obj:
+            if i.lower_ not in sw and i.dep_!="punct":
+                word.append(i.text)
+                dep.append(i.dep_)
+                tag.append(i.tag_)
+    else:
+        for i in sent_obj:
+            word.append(i.text)
+            dep.append(i.dep_)
+            tag.append(i.tag_)
+    return [word,dep,tag]
 #input s->1d list or string
 #input t->1d list or string
 #output jaro distance in float
@@ -224,10 +245,45 @@ def inter_sent_pattern(sent_list,ref_pat,window_len=6,stop_words=True,tagid="dep
     if ref_pat==[] or sent_list==[]:
         raise ValueError("Please enter a valid pattern")
     if len(sent_list)!=len(ref_pat):
-        raise ValueError("Length of the list sentence and length of the reference pattern must be same")
+        raise ValueError("Length of the list sentence:",len(sent_list)," and length of the reference pattern:",len(ref_pat) ,"must be same")
     return_list=[]
     for i,j in enumerate(sent_list):
         tptfrm=triples(j,stop_words)
+        word=tptfrm[0]
+        dep=tptfrm[1]
+        tag=tptfrm[2]
+        maxt=0.0
+        pat=[]
+        if tagid=="dep":
+            res=[dep[k:k+window_len] for k in range(len(dep)-window_len+1)]
+            for m in res:
+                sc=jaro(m,ref_pat[i])
+                if sc>=maxt:
+                    maxt=sc
+                    pat=m
+        else:
+            res=[tag[k:k+window_len] for k in range(len(tag)-window_len+1)]
+            for m in res:
+                sc=jaro(m,ref_pat[i])
+                if sc>=maxt:
+                    maxt=sc
+                    pat=m
+        return_list.append([pat,maxt])
+    return return_list
+#input sent_obj_list->list of  spacy doc token of len==2
+#input ref_pat->list
+#input window_len->int
+#input stop_words->boolean
+#input tagid->sring
+#output list
+def opt_inter_sent_pattern(sent_obj_list,ref_pat,window_len=6,stop_words=True,tagid="dep"):
+    if ref_pat==[] or sent_obj_list==[]:
+        raise ValueError("Please enter a valid pattern")
+    if len(sent_obj_list)!=len(ref_pat):
+        raise ValueError("Length of the list sentence:",len(sent_obj_list)," and length of the reference pattern:",len(ref_pat) ,"must be same")
+    return_list=[]
+    for i,j in enumerate(sent_obj_list):
+        tptfrm=opt_triples(j,stop_words)
         word=tptfrm[0]
         dep=tptfrm[1]
         tag=tptfrm[2]

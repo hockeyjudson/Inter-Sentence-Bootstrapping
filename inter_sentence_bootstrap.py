@@ -273,6 +273,30 @@ def filter_seed_pattern(seed_scr,filter_val=.60):
     for i in seed_scr:
         fil_seed_scr[i]=[j  for j in seed_scr[i] if j[2]<filter_val]
     return fil_seed_scr
+#input seed_dict->dict with seed patterns
+#output result_dict->dict element counted seperately for sent1 and sent2 group
+def count_elements(seed_dict):
+    from collections import Counter
+    result_dict=dict()
+    for kt in seed_dict:
+        k1=[i[0] for i in seed_dict[kt]]
+        k11=[]
+        for i in k1:
+            if i not in k11:
+                k11.append(i)
+        ka=[j for i in k11 for j in i]
+        c1=Counter(ka)
+        result_dict[kt]={}
+        result_dict[kt]['sent1']=dict(c1)
+        k2=[i[1] for i in seed_dict[kt]]
+        k22=[]
+        for i in k2:
+            if i not in k22:
+                k22.append(i)
+        kb=[j for i in k22 for j in i]
+        c2=Counter(kb)
+        result_dict[kt]['sent2']=dict(c2)
+    return result_dict
 #input sent_list->list of strings or sentence of len==2
 #input ref_pat->list
 #input window_len->int
@@ -442,3 +466,122 @@ def inter_sent_pattern_tagger(file_name,ref_pat,label,window_size=6,stop_words=T
             return {"tagged_sentences":result_list[0],"partial_matched_patterns":result_list[1]}
         else:
             return {"tagged_sentences":result_list[0],"partial_matched_patterns":result_list[1]}
+#input c->count dictionary stored in pickle file:count_element.pickle
+#input tag->string (dictionary key such as arguments.pickle,facts.pickle,identify.pickle,ratio.pickle,decision.pickle)
+#output dict with element and its counts
+def element_counter(sd,c,sent_n,tag):
+    dt={}
+    for i in sd:
+        dt[i]={}
+    for i in sd:
+        dt[i]["x"]=0
+        dt[i]["y"]=0
+        for j in c.keys():
+            if j==tag:
+                if i not in c[j][sent_n]:
+                    dt[i]["x"]=0
+                else:
+                    dt[i]["x"]=c[j][sent_n][i]
+            else:
+                if i not in c[j][sent_n]:
+                    dt[i]["y"]=dt[i]["y"]+0
+                else:
+                    dt[i]["y"]=dt[i]["y"]+c[j][sent_n][i]
+    return dt
+#input dict_ele_count->dict input the value from element_counter function
+#input element_counter(element_counter(sd[0],c,"arguments.pickle"))
+#output list[dict->element with values,string->element with the lowest score
+def score_min_val(dict_ele_count):
+    score={}
+    for i,j in dict_ele_count.items():
+        score[i]=scoring(*list(j.values()))
+    return [score,min(score, key=lambda k: score[k])]
+#input x->int
+#input y->int
+#input gamma->int scaling factor it works when x==0
+#output int
+def scoring(x,y,gamma=10):
+    if x==0 and y>0:
+        x=1
+        y=y*gamma
+    elif x==0 and y==0:
+        return 0.0
+    return x/(x+y)
+#input element->string tag going to match in the initial position of the list
+#input pat_list->list list of patterns
+#output list->id list which return dictionary of elements and its count and elemant with the maximum count
+def count_intial(element,pat_list):
+    dct={}
+    for i in pat_list:
+        if element==i[1]:
+            if i[0] not in dct:
+                dct[i[0]]=1
+            else:
+                dct[i[0]]=dct[i[0]]+1
+    if dct=={}:
+        return 0
+    else:
+        return [dct,max(dct, key=lambda k: dct[k])]
+#input element->string tag going to match in the final position of the list
+#input pat_list->list list of patterns
+#output list->id list which return dictionary of elements and its count and elemant with the maximum count
+def count_final(element,pat_list):
+    dct={}
+    for i in pat_list:
+        if i[-2]==element:
+            if i[-1] not in dct:
+                dct[i[-1]]=1
+            else:
+                dct[i[-1]]=dct[i[-1]]+1
+    if dct=={}:
+        return 0
+    else:
+        return [dct,max(dct, key=lambda k: dct[k])]  
+#input elements->list of tag going 
+#input pat_list->list list of patterns
+#output list->id list which return dictionary of elements and its count and elemant with the maximum count
+def count_pair(elements,pat_list):
+    dct={}
+    for i in pat_list:
+        for j,k in enumerate(i[:-2]):
+            if k==elements[0] and elements[1]==i[j+2]:
+                if i[j+1] not in dct:
+                    dct[i[j+1]]=1
+                else:
+                    dct[i[j+1]]=dct[i[j+1]]+1
+    if dct=={}:
+        return 0
+    else:
+        return [dct,max(dct, key=lambda k: dct[k])]
+#input pat->list(1d list of elements)
+#input pat_list->list of patterns
+#input tag->string (dictionary key such as arguments.pickle,facts.pickle,identify.pickle,ratio.pickle,decision.pickle)
+#input pat_list1->dict elements with count
+#output modified pattern or else string with neglected pattern
+def pattern_modify(pat,pat_list,tag,pat_list1):
+    dct={}
+    dct['sent1']=element_counter(pat[0],pat_list1,'sent1',tag)
+    dct['sent2']=element_counter(pat[1],pat_list1,'sent2',tag)
+    print(dct)
+    dct_min={}
+    dct_min['sent1']=score_min_val(dct['sent1'])
+    dct_min['sent2']=score_min_val(dct['sent2'])
+    print(dct_min)
+    ele=[[],[]]
+    for i,j in enumerate(dct_min):
+        for k,l in enumerate(pat[i]):
+            if dct_min[j][1]==pat[i][k]:
+                if k==0:
+                    ele[i].append([count_intial(pat[i][1],pat_list[tag][j]),i])
+                elif i==len(pat[i])-1:
+                    ele[i].append([count_final(pat[i][-2],pat_list[tag][j]),i])
+                else:
+                    ele[i].append([count_pair([pat[i][k-1],pat[i][k+1]],pat_list[tag][j]),i])
+    print(ele)
+    if 0 in ele:
+        return "pattern neglected"
+    else:
+        for k,l in enumerate(ele):
+            for i in ele[k]:
+                pat[k][i[1]]=i[0][1]
+    return pat

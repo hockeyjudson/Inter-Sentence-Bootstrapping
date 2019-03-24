@@ -422,7 +422,7 @@ def inter_sent_pattern_tagger(file_name,ref_pat,label,window_size=6,stop_words=T
         if jmp==1:
             jmp=0
             continue
-        pat_score=ins.opt_inter_sent_pattern([pickle_list[i[0]],pickle_list[i[1]]],ref_pat,window_size,stop_words,tagid)
+        pat_score=opt_inter_sent_pattern([pickle_list[i[0]],pickle_list[i[1]]],ref_pat,window_size,stop_words,tagid)
         avg_score=sum([k[1] for k in pat_score])/len(pat_score)
         if avg_score>=.80:
             p=1

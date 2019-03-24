@@ -251,8 +251,8 @@ def seed_score(seed_dict,key):
         for i in seed_dict:
             if i!=key:
                 for j in seed_dict[i]:
-                    sc1=ins.jaro(n[0],j[0])
-                    sc2=ins.jaro(n[1],j[1])
+                    sc1=jaro(n[0],j[0])
+                    sc2=jaro(n[1],j[1])
                     avg=(sc1+sc2)/2
                     if avg>maxt:
                         maxt=avg

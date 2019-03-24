@@ -7,3 +7,6 @@ Bootstrapping is  a semi supervised machine learning methodology. Using Inter se
  <li>Facts-Actual events occured in the case</li>
  <li>Arguments-Arguments on courts</li>
 <li>Identify-Identifying occurence of the case</li></ul>
+
+
+## For Sample Implmentation refer the jupyter notebook "Inter_Bootsrapping_demo.ipynb"

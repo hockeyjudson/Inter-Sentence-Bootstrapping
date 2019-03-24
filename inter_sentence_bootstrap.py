@@ -227,6 +227,44 @@ def frequent_patterns(ip_list):
     f_l=list(ls)
     freq=[ls[f_l[i]] for i in f_i]
     return freq
+#input tot_pat->dict list of all pattern from seed dataset
+#output seed_dict->dict with uniq pattern
+def uniq_pat_dict(tot_pat):
+    seed_dict={}
+    for i in tot_pat:
+        unq_pat=[]
+        for j in tot_pat[i]:
+            if j not in unq_pat:
+                unq_pat.append(j)
+            else:
+                unq_pat.append(j)
+        seed_dict[i]=unq_pat
+    return seed_dict
+#input seed_dict->dictionary with all unique pattern of seed dataset
+#input key->string dicitionary key
+#ouput dct->list
+def seed_score(seed_dict,key):
+    ret_dct=[]
+    dct=seed_dict[key]
+    for m,n in enumerate(dct):
+        maxt=0.0
+        for i in seed_dict:
+            if i!=key:
+                for j in seed_dict[i]:
+                    sc1=ins.jaro(n[0],j[0])
+                    sc2=ins.jaro(n[1],j[1])
+                    avg=(sc1+sc2)/2
+                    if avg>maxt:
+                        maxt=avg
+        dct[m].append(maxt)
+    return dct
+#input seed_dict->dictionary with all unique pattern of seed dataset
+#output ret_dict->dictionary with pattern score updated
+def seed_inter_pat_score(seed_dict):
+    ret_dict={}
+    for i in seed_dict:
+        ret_dict[i]=seed_score(seed_dict,i )
+    return ret_dict
 #input seed_pat->dict
 #input filter_val->float shoulld always between(0.0 to 1.0)
 #output fil_seed_scr->dict filtered dictionary

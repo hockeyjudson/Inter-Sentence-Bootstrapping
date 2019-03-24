@@ -190,7 +190,7 @@ def inter_seed_pattern(sent_list,window_len=6,stop_words=True,tagid="dep"):
     sent2_pat=[]
     final_patterns=[]
     for i,j in enumerate(sent_list):
-        tptfrm=ins.triples(j,stop_words)
+        tptfrm=triples(j,stop_words)
         word=tptfrm[0]
         dep=tptfrm[1]
         tag=tptfrm[2]
@@ -347,3 +347,60 @@ def split_seed_dict(seed_dict):
         split_seed[i]={'sent1':s1}
         split_seed[i]['sent2']=s2
     return split_seed
+#input file_name->string input file name
+#input ref_pat->list input inter pattern
+#input label-> string refer dictionary keys for label
+#input window_size->int By default is 6
+#input stop_words->boolean By default is True
+#input tagid->string By default is dep 
+#output dictionary
+def inter_sent_pattern_tagger(file_name,ref_pat,label,window_size=6,stop_words=True,tagid="dep"):
+    import os
+    import pickle
+    tags=["<arguments>","<identify>","<facts>","<decision>","<ratio>"]
+    print("@"+file_name+"\n")
+    pick_fl="/home/judson/Desktop/sentenceSeg/clean_sent_spacy/"+file_name.split("/")[-1].split(".")[0]+".pickle"
+    pat_collect=[]
+    new_list=[]
+    tagged_sent=[]
+    flag=0
+    sent_list=open(file_name,"r").readlines()
+    pickle_list=pickle.load(open(pick_fl,"rb"))
+    if len(sent_list)!=len(pickle_list):
+        return "check the files: "+file_name+", "+pick_fl
+    result_list=[[],[]]
+    sent_list_no=[[i,i+1] for i in range(len(sent_list)-2+1)]
+    p=0
+    jmp=0
+    for i in sent_list_no:
+        if p==1:
+            p=0
+            continue
+        for j in [sent_list[i[0]],sent_list[i[1]]]:
+                  if j.strip().split(" ")[-1] in tags:
+                    p=0
+                    jmp=1
+                    break
+        if jmp==1:
+            jmp=0
+            continue
+        pat_score=ins.opt_inter_sent_pattern([pickle_list[i[0]],pickle_list[i[1]]],ref_pat,window_size,stop_words,tagid)
+        avg_score=sum([k[1] for k in pat_score])/len(pat_score)
+        if avg_score>=.80:
+            p=1
+            flag=1
+            sent_list[i[0]]=sent_list[i[0]].strip()+" <"+label[1:-1].split("/")[0]+">\n"
+            sent_list[i[1]]=sent_list[i[1]].strip()+" <"+label[1:-1].split("/")[1]+">\n"
+            result_list[0].extend([sent_list[i[0],sent_list[i[1]]]])
+        elif .70<avg_score<.80:
+            result_list[1].append(pat_score)
+        if flag==1:
+            try:
+                os.remove(file_name)
+            except:
+                pass
+            with open(file_name,"a") as f:
+                    f.write("".join(new_list))
+            return {"tagged_sentences":result_list[0],"partial_matched_patterns":result_list[1]}
+        else:
+            return {"tagged_sentences":result_list[0],"partial_matched_patterns":result_list[1]}

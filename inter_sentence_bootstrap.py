@@ -569,15 +569,17 @@ def pattern_modify(pat,pat_list,tag,pat_list1):
     print(dct_min)
     ele=[[],[]]
     for i,j in enumerate(dct_min):
+        print("i:",i," j:",j,"\n")
         for k,l in enumerate(pat[i]):
             if dct_min[j][1]==pat[i][k]:
+                print("k:",k," l:",l,"\n")
                 if k==0:
                     ele[i].append([count_intial(pat[i][1],pat_list[tag][j]),i])
-                elif i==len(pat[i])-1:
+                elif k==len(pat[i])-1:
                     ele[i].append([count_final(pat[i][-2],pat_list[tag][j]),i])
                 else:
                     ele[i].append([count_pair([pat[i][k-1],pat[i][k+1]],pat_list[tag][j]),i])
-    print(ele)
+        print(ele)
     if 0 in ele:
         return "pattern neglected"
     else:
